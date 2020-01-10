@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv=“Content-Type” content=“text/html; charset=utf-8”>
+    <title>נותנים באהבה</title>
+  <link href="https://fonts.googleapis.com/css?family=Assistant&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css" rel="stylesheet">
+  <!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+  <style>
+    html {
+      background: #333;
+    }
+    body {
+      font-family: 'Assistant', Arial, sans-serif;
+      padding: 0;
+      margin: 0;
+      counter-reset: family-counter;
+      background: white;
+      padding-top: 8vmin;
+    }
+    .families {
+      position: relative;
+      top: -8vmin;
+      padding-top: 8vmin;
+      background: white;
+    }
+    .family {
+      padding: 3vmin;
+      font-size: 6vmin;
+      box-shadow: 0px 0px 4vmin rgba(0,0,0,0.2);
+      padding-top: 0px;
+      overflow: hidden;
+      max-height: 100vmin;
+      transition: max-height 0.2s;
+      background: white;
+    }
+    .family.done {
+      background: #ccc;
+      max-height: 7vmin;
+    }
+    .name {
+      font-size: 7vmin;
+      font-weight: bold;
+    }
+    .name::before {
+      counter-increment: family-counter 1;
+      content: counter(family-counter) ". ";
+    }
+    .addr, .phone {
+      display: inline-block;
+    }
+    .phoneWrapper:before {
+      content: 'טל\': ';
+      font-weight: bold;
+    }
+    .props {
+      left: 1vmin;
+      padding-top: 1vmin;
+      float: left;
+    }
+    .prop {
+      margin-right: 10px
+    }
+    .subheader {
+      background: white;
+      position: fixed;
+      z-index: 10;
+      width: 100%;
+      top: -10vmin;
+      height: 10vmin;;
+    }
+    .header {
+      position: fixed;
+      z-index: 5;
+      top: 0vmin;
+      width: 100%;
+      max-width: 1080px;
+    }
+    .header, .footer {
+      font-size: 7vmin;
+      text-align: center;
+      color: white;
+      background: darkslateblue;
+      box-shadow: 0px 0px 20px rgba(0,0,0,0.7);
+    }
+    .footer {
+      font-size: 6vmin;
+      background: darkslategray;
+    }
+    #contacts {
+      padding: 3vmin;
+      font-size: 6vmin;
+      background: white;
+    }
+    .contactName {
+      font-weight: bold;
+    }
+    .contact .phone {
+      top: -1vmin;
+      position: relative;
+    }
+    .hints::before {
+      content: "רמז לזיהוי: ";
+      font-weight: bold;
+    }
+    .details::before {
+      content: "פרטים נוספים: ";
+      font-weight: bold;
+    }
+    .specialReqs:before {
+      content: 'מוצרים מיוחדים:';
+      font-weight: bold;
+    }
+    .specialReqs>ul {
+      padding: 0em 1em;
+      margin: 0;
+    }
+    .wrapper {
+      max-width: 1080px;
+      margin-left: auto;
+      margin-right: auto;
+      box-shadow: 0px 40px 40px rgba(0,0,0,1);
+    }
+
+    .navicon {
+        position:absolute;
+        top: 0px;
+        left: 16px;
+    }
+
+    @media (min-width: 1200px) {
+      .family {
+        font-size: 72px;
+      }
+      .name {
+      font-size: 84px;
+      }
+      .header {
+        font-size: 84px;
+      }
+      .footer {
+        font-size: 72px;
+      }
+      body {
+        padding-top: 96px;
+      }
+      #contacts {
+        padding: 36px;
+        font-size: 72px;
+      }
+      .family.done {
+        max-height: 72px;
+      }
+      .props {
+        left: 12px;
+        padding-top: 12px;
+      }
+      .families {
+        top: -96px;
+        padding-top: 96px;
+      }
+      body {
+        background: #333;
+      }
+      .contact .phone {
+        top: -12px;
+      }
+    }
+  </style>
+</head>
+<body dir="rtl">
+  <div class="wrapper" id="app">
+  <!-- subheader for top off-screen bug?! in one drive -->
+    <div class="subheader"></div>
+    <div class="header">קו {{line.name}}
+        <div class="navicon" v-on:click="toggleNav">
+            <i v-bind:class="'fab fa-' + navs[activeNavNdx].icon + ' fa-1x'"></i>
+            <i class="fa fa-map-marked-alt fa-1x'"></i>
+          </div>
+    </div>
+    <div id="families" >
+      <div v-for="family in families" class="family"
+            v-bind:class="{'zzz': !family.done, 'done': family.done}"
+            v-on:click="toggleDone(family)">
+        <div class="props">
+            <i v-if="family.single" class="prop fa fa-user" style="color: green;"></i>          
+            <i v-if="family.badaz" class="prop fa fa-certificate" style="color: red;"></i>          
+        </div>
+        <div class="name">{{family.name}}</div>
+        <div class="addrWrapper">
+          <a :href="navigationUrl(family.addr)" target="_blank"
+            v-on:click="stopPropagation"><div class="addr">{{family.addr}}</div>
+          </a>
+        </div>
+        <div v-if="family.floor || family.apt" class="floorApt">
+            <span v-if="family.floor">{{floorHeading(family.floor)}} {{family.floor}}</span>
+            <span v-if="family.floor && family.apt">, </span>
+            <span v-if="family.apt">דירה {{family.apt}}</span>
+        </div>
+        <div v-if="family.specialReqs && family.specialReqs.length" class="specialReqs">
+            <ul>
+              <li v-for="(req,index) in family.specialReqs" class="specialReq">{{req}}</li>
+            </ul>
+          </div>
+          <div v-if="family.details" class="details">{{family.details}}</div>
+        <div v-if="family.hints" class="hints">{{family.hints}}</div>
+        <div v-if="family.phone" class="phoneWrapper">
+            <a :href="'tel:'+family.phone" v-on:click="stopPropagation">
+              <div class="phone">{{family.phone}}</div>
+            </a>
+        </div>
+    </div>
+  <div class="footer">טלפונים לשאלות</div>
+
+  <div id="contacts">
+    <div v-for="contact in contacts" class="contact">
+      <div class="contactName">{{contact.name}}</div>
+      <div class="phoneWrapper">
+          <a :href="'tel:'+contact.phone"><div class="phone">{{contact.phone}}</div></a>
+      </div>
+  </div>
+  </div>
+</div>
+</div>
+
+<script>
+var app = new Vue({
+  el: '#app',
+  methods: {
+    toggleNav: function() {
+      if (++this.activeNavNdx === this.navs.length) {
+        this.activeNavNdx = 0;
+      }
+    },
+    toggleDone: function(family, event)  {
+      Vue.set(family, 'done', !family.done);
+    },
+    stopPropagation: function(event) {
+      event.stopPropagation();
+    },
+    navigationUrl: function(addr, event) {
+      return this.navs[this.activeNavNdx].url + addr;
+    },
+    floorHeading: function(floor) {
+      return floor === 'קרקע' || floor === "כניסה" ? "קומת" : "קומה";
+    }
+  },
+  data: {
+    navs: [
+      {icon:'waze',   url: 'https://waze.com/ul?q='},
+      {icon:'google', url: 'https://www.google.com/maps/search/?api=1&query='},
+      {icon:'apple',  url: 'http://maps.apple.com/?q='}
+      ],
+    activeNavNdx: 0,
+    line: {
+      name: '99'
+    },
+    families: [
+      // { // Full sample record:
+      //     name: 'שם מלא',
+      //     phone: '000-0000000',
+      //     specialReqs: ['מוצר א', 'מוצר ב'],
+      //     addr: 'כתובת מלאה',
+      //     floor:'0',
+      //     apt:'0',
+      //     details:'פרטים',
+      //     hints: 'רמזים',
+      //     single: false,
+      //     badaz: false
+      // },
+        {
+          name: 'ישראל ישראלי',
+          phone: '000-0000000',
+          specialReqs: ['מוצר א', 'מוצר ב'],
+          addr: 'דרך שמחה גולן 54, חיפה',
+          floor:'1',
+          apt:'18 מימין',
+          details:'3 נפשות',
+          hints: 'קניון חיפה',
+          single: true,
+          badaz: true
+      },
+        {
+          name: 'ישראלה קדוש',
+          phone: '999-9999999',
+          addr: 'ההסתדרות 55, צומת לב המפרץ, חיפה',
+          hints: 'מקדונלדס',
+          single: true,
+      },
+      {
+        name:'משה רבינוביץ\'',  
+        phone: '555-5555555',
+        addr: 'חלוצי התעשייה 96, חיפה',
+      }
+    ],
+    contacts: [
+    {
+        name: 'שם ותפקיד 1',
+        phone: '111-1111111'
+      },
+      {
+        name: 'שם ותפקיד 2',
+        phone: '222-2222222'
+      },
+      {
+        name: 'איציק / נהג קבוע',
+        phone: '333-3333333'
+      }
+    ]
+  }
+});
+</script>
+
+</body>
+</html>
